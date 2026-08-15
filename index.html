@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e94a3f">
+<title>出品文メーカー</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏷️</text></svg>">
+<style>
+  :root{
+    --bg:#f6f6f7; --card:#fff; --ink:#1b1b1f; --sub:#6b6b76; --line:#e3e3e8;
+    --accent:#e94a3f; --accent-ink:#fff; --ok:#1a9c5b; --warn:#b8730a; --err:#c8362b;
+    --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#141417; --card:#1e1e23; --ink:#f0f0f3; --sub:#a0a0ad; --line:#33333c;
+           --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3); }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink); font-size:16px; line-height:1.65;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;
+    padding:0 0 env(safe-area-inset-bottom);
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:16px 16px 48px}
+
+  header{display:flex;align-items:center;gap:10px;padding:14px 2px 18px}
+  header h1{font-size:19px;font-weight:700;margin:0;letter-spacing:.01em}
+  header .logo{font-size:26px;line-height:1}
+  header .spacer{flex:1}
+  .icon-btn{
+    background:none;border:1px solid var(--line);color:var(--sub);
+    width:38px;height:38px;border-radius:10px;font-size:17px;cursor:pointer;
+    display:grid;place-items:center;
+  }
+  .icon-btn:active{background:var(--line)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+        box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+
+  label{display:block;font-size:13px;font-weight:600;color:var(--sub);margin:0 0 6px}
+  input[type=text],input[type=password],select,textarea{
+    width:100%;background:var(--bg);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;
+    padding:13px 12px;font-size:16px;font-family:inherit;line-height:1.5;
+    -webkit-appearance:none;appearance:none;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+          background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+  textarea{resize:vertical;min-height:64px}
+  .field+.field{margin-top:14px}
+
+  .btn{
+    width:100%;border:0;border-radius:12px;padding:16px;font-size:17px;font-weight:700;
+    background:var(--accent);color:var(--accent-ink);cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn:active{filter:brightness(.92)}
+  .btn[disabled]{opacity:.55;cursor:default}
+  .btn.sub{background:var(--card);color:var(--ink);border:1px solid var(--line);font-size:15px;padding:13px}
+
+  .spin{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.35);
+        border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .btn.loading .spin{display:block}
+
+  details{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+  details summary{font-size:14px;color:var(--sub);cursor:pointer;list-style:none;
+                  display:flex;align-items:center;gap:6px;font-weight:600}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸";transition:transform .15s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .body{padding-top:14px}
+
+  #result{display:none}
+  #out{
+    width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;
+    padding:14px;font-size:15px;line-height:1.85;white-space:pre-wrap;word-break:break-word;
+    font-family:inherit;min-height:220px;color:var(--ink);
+  }
+  .row{display:flex;gap:10px;margin-top:12px}
+  .row .btn{margin:0}
+
+  .msg{border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.6;margin-bottom:14px;display:none}
+  .msg.show{display:block}
+  .msg.err{background:rgba(200,54,43,.1);color:var(--err);border:1px solid rgba(200,54,43,.25)}
+  .msg.warn{background:rgba(184,115,10,.1);color:var(--warn);border:1px solid rgba(184,115,10,.25)}
+  .msg.ok{background:rgba(26,156,91,.1);color:var(--ok);border:1px solid rgba(26,156,91,.25)}
+
+  .hint{font-size:12.5px;color:var(--sub);line-height:1.6;margin:8px 0 0}
+  .hint a{color:var(--accent)}
+
+  .setup h2{font-size:17px;margin:0 0 8px;text-align:center}
+  .setup ol{text-align:left;font-size:14px;color:var(--sub);padding-left:1.3em;margin:14px 0}
+  .setup ol li{margin-bottom:9px}
+  .setup ol a{color:var(--accent);font-weight:600}
+  .setup .lead{text-align:center;margin-top:0}
+
+  .hist{font-size:14px}
+  .hist .item{border-bottom:1px solid var(--line);padding:11px 0;cursor:pointer;
+              display:flex;align-items:center;gap:10px}
+  .hist .item:last-child{border-bottom:0}
+  .hist .item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hist .item .st{font-size:11px;color:var(--sub);flex:none}
+  .hist .empty{color:var(--sub);font-size:13px;padding:6px 0}
+
+  .src{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.7;word-break:break-all}
+
+  .chk{display:flex;align-items:flex-start;gap:9px;font-size:14px;color:var(--ink);font-weight:600}
+  .chk input{width:auto;margin:3px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="logo">🏷️</span>
+    <h1>出品文メーカー</h1>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="gearBtn" title="設定">⚙</button>
+  </header>
+
+  <div class="msg" id="msg"></div>
+
+  <!-- 初回セットアップ -->
+  <section class="card setup" id="setup" style="display:none">
+    <h2>最初に1回だけ設定します</h2>
+    <p class="hint lead">AIを動かすための「キー」が必要です。<b>無料</b>・<b>クレジットカード不要</b>です。</p>
+    <ol>
+      <li><a href="https://console.groq.com/keys" target="_blank" rel="noopener">Groq のキー発行ページを開く</a></li>
+      <li>Googleアカウントなどでサインアップ（無料）</li>
+      <li><b>Create API Key</b> を押して、名前は何でもOK</li>
+      <li>出てきた <b>gsk_</b> で始まる文字列をコピー（1回しか表示されません）</li>
+      <li>下に貼り付けて保存</li>
+    </ol>
+    <div class="field">
+      <input type="password" id="keyInput" placeholder="gsk_... を貼り付け" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="row"><button class="btn" id="saveKey">保存して始める</button></div>
+    <p class="hint">キーはこの端末のブラウザの中だけに保存されます。どこにも送信されません。<br>
+    GoogleのGeminiキー（<b>AIza…</b> や <b>AQ.</b> で始まるもの）を貼っても動きます。</p>
+  </section>
+
+  <!-- メイン -->
+  <section class="card" id="main" style="display:none">
+    <div class="field">
+      <label for="name">商品名</label>
+      <input type="text" id="name" placeholder="例：GameSir T4 Nova Lite" autocomplete="off" enterkeyhint="go">
+    </div>
+    <div class="field">
+      <label for="cond">商品の状態</label>
+      <select id="cond">
+        <option>新品、未使用</option>
+        <option>未使用に近い</option>
+        <option>目立った傷や汚れなし</option>
+        <option>やや傷や汚れあり</option>
+        <option>傷や汚れあり</option>
+        <option>全体的に状態が悪い</option>
+      </select>
+    </div>
+
+    <details id="moreDetails">
+      <summary>補足を書く（任意）</summary>
+      <div class="body">
+        <div class="field">
+          <label for="note">傷の場所、付属品の有無、購入時期など</label>
+          <textarea id="note" placeholder="例：箱あり、説明書なし。左側面に小さなスレあり。"></textarea>
+        </div>
+      </div>
+    </details>
+
+    <div class="row" style="margin-top:16px">
+      <button class="btn" id="gen"><span class="spin"></span><span id="genLabel">説明文を作る</span></button>
+    </div>
+  </section>
+
+  <!-- 結果 -->
+  <section class="card" id="result">
+    <label>できあがり（そのままメルカリに貼れます）</label>
+    <textarea id="out" rows="14" spellcheck="false"></textarea>
+    <div class="row">
+      <button class="btn" id="copy">コピーする</button>
+      <button class="btn sub" id="again" style="width:auto;padding-left:20px;padding-right:20px">作り直す</button>
+    </div>
+    <div class="src" id="src"></div>
+  </section>
+
+  <!-- 履歴 -->
+  <section class="card" id="histCard" style="display:none">
+    <details>
+      <summary>これまでに作った説明文</summary>
+      <div class="body hist" id="hist"></div>
+    </details>
+  </section>
+
+  <!-- 設定 -->
+  <section class="card" id="settings" style="display:none">
+    <div class="field">
+      <label for="keyInput2">APIキー</label>
+      <input type="password" id="keyInput2" placeholder="gsk_... または AIza..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      <p class="hint">
+        <a href="https://console.groq.com/keys" target="_blank" rel="noopener">Groqでキーを取る（無料・カード不要）</a>　/
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Googleでキーを取る</a>
+      </p>
+    </div>
+    <div class="field">
+      <label for="provider">使うAI</label>
+      <select id="provider">
+        <option value="auto">キーから自動で判定（おすすめ）</option>
+        <option value="groq">Groq</option>
+        <option value="gemini">Google Gemini</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="model">モデル</label>
+      <select id="model"></select>
+      <p class="hint" id="modelHint"></p>
+    </div>
+    <div class="row">
+      <button class="btn sub" id="saveSettings">保存</button>
+      <button class="btn sub" id="clearHist" style="width:auto;padding-left:18px;padding-right:18px">履歴を消す</button>
+    </div>
+  </section>
+
+  <p class="hint" style="text-align:center;margin-top:22px">
+    スペックはAIが調べた内容です。<b>出品前に必ず自分の目で確認</b>してください。
+  </p>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var K_KEY="mercari_api_key", K_MODEL="mercari_model", K_HIST="mercari_hist", K_PROV="mercari_provider";
+  var $ = function(id){ return document.getElementById(id); };
+
+  // キーはこのファイルには書きません（公開すると盗まれて停止させられるため）。
+  // 代わりに、URLの末尾に #k=... が付いていれば、それを取り込んでこの端末に保存します。
+  // 一度取り込めばURLからは消えるので、次からはブックマークを開くだけで使えます。
+  var BUILTIN_KEY = "";
+  (function(){
+    var m = /[#&]k=([^&]+)/.exec(location.hash || "");
+    if(!m) return;
+    try{ localStorage.setItem("mercari_api_key", decodeURIComponent(m[1])); }catch(e){}
+    try{ history.replaceState(null, "", location.pathname + location.search); }
+    catch(e){ location.hash = ""; }
+  })();
+
+  /* ---------- モデル定義 ---------- */
+
+  var MODELS = {
+    groq: [
+      { key:"oss120-search", id:"openai/gpt-oss-120b", label:"標準（ネット検索あり・推奨）", search:true,  tool:"browser_search", effort:"low" },
+      { key:"oss20-search",  id:"openai/gpt-oss-20b",  label:"軽量（ネット検索あり）",       search:true,  tool:"browser_search", effort:"low" },
+      { key:"compound",      id:"groq/compound",       label:"別方式の検索（重い）",         search:true,  tool:null },
+      { key:"oss120",        id:"openai/gpt-oss-120b", label:"検索なし（速いが不正確）",     search:false, tool:null, effort:"low" },
+      { key:"llama70",       id:"llama-3.3-70b-versatile", label:"llama-3.3-70b（検索なし）", search:false, tool:null }
+    ],
+    gemini: [
+      { key:"g36", id:"gemini-3.6-flash", label:"gemini-3.6-flash（推奨）", search:true },
+      { key:"g37", id:"gemini-3.7-flash", label:"gemini-3.7-flash（賢い）", search:true },
+      { key:"g35", id:"gemini-3.5-flash", label:"gemini-3.5-flash",        search:true },
+      { key:"g25", id:"gemini-2.5-flash", label:"gemini-2.5-flash（古い）", search:true }
+    ]
+  };
+  var DEFAULT_MODEL = { groq:"oss120-search", gemini:"g36" };
+
+  function detectProvider(key){
+    if(!key) return "groq";
+    if(/^gsk_/i.test(key)) return "groq";
+    if(/^AIza/.test(key) || /^AQ\./.test(key)) return "gemini";
+    return "groq";
+  }
+
+  var state = {
+    key: localStorage.getItem(K_KEY) || BUILTIN_KEY || "",
+    provPref: localStorage.getItem(K_PROV) || "auto",
+    model: localStorage.getItem(K_MODEL) || "",
+    hist: []
+  };
+  try { state.hist = JSON.parse(localStorage.getItem(K_HIST) || "[]"); } catch(e){ state.hist = []; }
+
+  function provider(){
+    return state.provPref === "auto" ? detectProvider(state.key) : state.provPref;
+  }
+  function currentModel(){
+    var p = provider();
+    var list = MODELS[p];
+    for(var i=0;i<list.length;i++){ if(list[i].key === state.model) return list[i]; }
+    for(var j=0;j<list.length;j++){ if(list[j].key === DEFAULT_MODEL[p]) return list[j]; }
+    return list[0];
+  }
+
+  /* ---------- 画面 ---------- */
+
+  function showMsg(text, kind){
+    var m = $("msg");
+    m.textContent = text;
+    m.className = "msg show " + (kind||"err");
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  function hideMsg(){ $("msg").className = "msg"; }
+
+  function fillModels(){
+    var p = provider();
+    var sel = $("model");
+    sel.innerHTML = "";
+    MODELS[p].forEach(function(m){
+      var o = document.createElement("option");
+      o.value = m.key; o.textContent = m.label;
+      sel.appendChild(o);
+    });
+    sel.value = currentModel().key;
+    $("modelHint").textContent = currentModel().search
+      ? "このモデルはネットで商品スペックを調べます。"
+      : "このモデルはネット検索をしません。速いですが、新しい商品のスペックは不正確になることがあります。";
+  }
+
+  function render(){
+    var ready = !!state.key;
+    $("setup").style.display = ready ? "none" : "block";
+    $("main").style.display  = ready ? "block" : "none";
+    $("histCard").style.display = (ready && state.hist.length) ? "block" : "none";
+    $("keyInput2").value = state.key;
+    $("provider").value = state.provPref;
+    fillModels();
+    renderHist();
+  }
+
+  function renderHist(){
+    var box = $("hist");
+    if(!state.hist.length){ box.innerHTML = '<div class="empty">まだありません</div>'; return; }
+    box.innerHTML = "";
+    state.hist.forEach(function(h){
+      var d = document.createElement("div");
+      d.className = "item";
+      var nm = document.createElement("span");
+      nm.className = "nm"; nm.textContent = h.name;
+      var st = document.createElement("span");
+      st.className = "st"; st.textContent = h.cond;
+      d.appendChild(nm); d.appendChild(st);
+      d.addEventListener("click", function(){
+        $("out").value = h.text;
+        $("src").textContent = "";
+        $("result").style.display = "block";
+        $("name").value = h.name;
+        $("cond").value = h.cond;
+        $("result").scrollIntoView({behavior:"smooth", block:"start"});
+      });
+      box.appendChild(d);
+    });
+  }
+
+  function pushHist(name, cond, text){
+    state.hist.unshift({name:name, cond:cond, text:text});
+    if(state.hist.length > 30) state.hist.length = 30;
+    try{ localStorage.setItem(K_HIST, JSON.stringify(state.hist)); }catch(e){}
+    renderHist();
+    $("histCard").style.display = "block";
+  }
+
+  /* ---------- プロンプト ---------- */
+
+  var SYSTEM = "あなたは日本のフリマアプリ「メルカリ」の出品説明文を書く専門家です。日本語のネイティブとして自然な商品説明を書き、指示された形式を厳密に守ります。事実として確認できたことだけを書き、前置きや後書きは一切書きません。";
+
+  function badgeFor(cond){
+    if(cond === "新品、未使用") return "新品";
+    if(cond === "未使用に近い") return "未使用に近い";
+    if(cond === "目立った傷や汚れなし") return "美品";
+    return "中古";
+  }
+
+  function buildPrompt(name, cond, note, doSearch){
+    var badge = badgeFor(cond);
+    var L = [];
+    L.push("【商品名】" + name);
+    L.push("【状態】" + cond);
+    if(note) L.push("【出品者からの補足】" + note);
+    L.push("");
+    L.push(doSearch
+      ? "この商品のスペックをウェブで調べ、下の形式ちょうどに沿った出品説明文を書いてください。検索は最小限（1〜2回）にとどめ、すぐに執筆に移ってください。"
+      : "この商品について確実に分かっていることだけを使い、下の形式ちょうどに沿った出品説明文を書いてください。");
+    L.push("");
+    L.push("==== 出力形式 ====");
+    L.push("【" + badge + "】" + name);
+    L.push("");
+    L.push("（導入文。1〜2行。「〜な〇〇です！」の形で、状態と商品の一言説明を入れる）");
+    L.push("");
+    L.push("主な特徴");
+    L.push("•  （特徴1）");
+    L.push("•  （特徴2）");
+    L.push("•  （特徴3）");
+    L.push("•  （特徴4）");
+    L.push("");
+    L.push("（締めの一文。買い手目線で1文だけ。盛らない）");
+    L.push("宜しくお願いします");
+    L.push("==== ここまで ====");
+    L.push("");
+    L.push("【厳守事項】");
+    L.push("1. 事実として確認できたスペックだけを書く。推測・創作は絶対にしない。虚偽記載は取引トラブルになります。");
+    L.push("2. 「主な特徴」は4〜7項目。多すぎない。");
+    L.push("3. 各項目は「•」のあとに半角スペース2つ。体言止め（〜搭載／〜採用／〜対応／〜付き）で終える。");
+    L.push("4. 数値は「バッテリー容量：600mAh」のように全角コロンで書く。");
+    L.push("5. カタカナ語は、日本の家電量販店や公式サイトで実際に使われている表記に必ず合わせる。英単語をそのままカタカナに音訳することを固く禁じる。悪い例→良い例：トリモード→3モード接続、デュアルラメモータ→デュアル振動モーター、ハルエフェクト→ホールエフェクト、マルチファンクション→多機能。日本語で言い換えられるものは日本語にする。自信がない用語は書かない。");
+    L.push("5b. 出典番号や参照記号（【1†...】、[1]など）を本文に絶対に書かない。");
+    L.push("6. 補足が与えられている場合は、傷や付属品の情報を導入文か締めの近くに自然に含める。");
+    L.push("7. メルカリ規約に触れる表現を書かない：「正規品保証」「本物保証」などの断定的保証、「ノークレームノーリターン」「返品不可」などの条件の押し付け、他サイトの価格や相場との比較、外部サイトや連絡先への誘導。");
+    L.push("8. 最終行は必ず「宜しくお願いします」で終える。省略禁止。");
+    L.push("9. 出力は説明文だけ。前置き、後書き、見出し、マークダウン記法（**や#や```）は一切書かない。");
+    L.push("10. 分からない項目は書かず、確認できた項目だけで仕上げる。");
+    L.push("11. 自然な日本語で書く。翻訳調にしない。");
+    return L.join("\n");
+  }
+
+  /* ---------- API ---------- */
+
+  function readErr(bodyText){
+    try{
+      var j = JSON.parse(bodyText);
+      return (j.error && (j.error.message || j.error.status)) || (j.message || "");
+    }catch(e){ return (bodyText||"").slice(0,200); }
+  }
+
+  function friendlyError(status, bodyText, prov){
+    var d = readErr(bodyText);
+    if(status === 401 || (status === 403 && prov === "groq"))
+      return "APIキーが使えませんでした。⚙ 設定から入れ直してください。";
+    if(status === 403)
+      return "このキーのプロジェクトがGoogleにブロックされています（Google側の問題です）。⚙ 設定からGroqのキー（gsk_…）に切り替えてください。";
+    if(status === 400 && /API key not valid|API_KEY_INVALID|invalid_api_key/i.test(bodyText))
+      return "APIキーが正しくないようです。⚙ 設定から入れ直してください。";
+    if(status === 429)
+      return "無料枠の上限（1分あたりの情報量）に達しました。1分ほど待つと自動で回復します。もう一度押してください。";
+    if(status === 413)
+      return "調べた情報が多すぎて処理しきれませんでした。⚙ 設定でモデルを「標準（ネット検索あり）」に戻してからもう一度お試しください。";
+    if(status === 404)
+      return "このモデルは使えないようです。⚙ 設定で別のモデルを選んでください。";
+    if(status >= 500)
+      return "AI側が混み合っています。少し待ってもう一度押してください。";
+    return "エラーが起きました（" + status + "）" + (d ? "：" + d : "");
+  }
+
+  function post(url, headers, body){
+    return fetch(url, { method:"POST", headers:headers, body:JSON.stringify(body) })
+      .then(function(r){ return r.text().then(function(t){ return {ok:r.ok, status:r.status, text:t}; }); });
+  }
+
+  /* --- Groq (OpenAI互換) --- */
+  // 残り秒数を数えながら待つ
+  function waitFor(sec){
+    var left = Math.ceil(sec);
+    return new Promise(function(done){
+      countdown(left);
+      var t = setInterval(function(){
+        left--;
+        if(left <= 0){ clearInterval(t); done(); }
+        else countdown(left);
+      }, 1000);
+    });
+  }
+
+  var MAX_RETRY = 5;
+
+  function callGroq(prompt, model, attempt){
+    attempt = attempt || 1;
+    var body = {
+      model: model.id,
+      messages: [ {role:"system", content:SYSTEM}, {role:"user", content:prompt} ],
+      temperature: 0.4,
+      max_tokens: 2000
+    };
+    if(model.tool) body.tools = [{ type: model.tool }];
+    // 思考を浅くすると消費トークンが 1/10 になる（無料枠を長持ちさせる要）
+    if(model.effort) body.reasoning_effort = model.effort;
+    return post("https://api.groq.com/openai/v1/chat/completions",
+      { "Authorization":"Bearer " + state.key, "Content-Type":"application/json" },
+      body
+    ).then(function(res){
+      // 1日の上限（TPD）は待っても回復しないので、すぐ別のAIに譲る
+      if(res.status === 429 && /per day|\bTPD\b|per_day/i.test(res.text)){
+        var ex = new Error("このAIは今日の無料枠を使い切りました。日付が変わると回復します。");
+        ex.__exhausted = true;
+        throw ex;
+      }
+      // 1分あたりの上限（TPM）は待てば回復する。60秒以上あけないと張り付くので長めに待つ
+      if(res.status === 429 && attempt <= MAX_RETRY){
+        var m = /try again in ([\d.]+)s/i.exec(res.text);
+        var sec = m ? Math.max(parseFloat(m[1]) + 3, 65) : 65;
+        return waitFor(sec).then(function(){
+          setBusyLabel(model);
+          return callGroq(prompt, model, attempt + 1);
+        });
+      }
+      // 検索結果が大きすぎて処理できない場合も別のAIに譲る
+      if(res.status === 413){
+        var ex2 = new Error("調べた情報が多すぎました。");
+        ex2.__exhausted = true;
+        throw ex2;
+      }
+      if(!res.ok) throw new Error(friendlyError(res.status, res.text, "groq"));
+      var j = JSON.parse(res.text);
+      var msg = j.choices && j.choices[0] && j.choices[0].message;
+      var text = (msg && msg.content) || "";
+      if(!text.trim()) throw new Error("AIが空の返事を返しました。もう一度押してみてください。");
+      return { text:text, sources: groqSources(msg) };
+    });
+  }
+
+  function countdown(sec){
+    var el = $("genLabel");
+    if(el) el.textContent = "上限に達しました。あと" + sec + "秒で自動で再挑戦します…";
+  }
+  function setBusyLabel(model){
+    var el = $("genLabel");
+    if(el) el.textContent = model.search ? "ネットで調べています…" : "作っています…";
+  }
+
+  function groqSources(msg){
+    var out = [], seen = {};
+    var tools = msg && (msg.executed_tools || msg.tool_calls);
+    if(!Array.isArray(tools)) return out;
+    tools.forEach(function(t){
+      var res = t && (t.search_results || t.output || t.result);
+      var arr = res && (res.results || res);
+      if(Array.isArray(arr)){
+        arr.forEach(function(r){
+          var t2 = r && (r.title || r.url);
+          if(t2 && !seen[t2]){ seen[t2]=1; out.push(t2); }
+        });
+      }
+    });
+    return out.slice(0,6);
+  }
+
+  /* --- Gemini --- */
+  function callGemini(prompt, model){
+    var body = {
+      system_instruction: { parts: [{ text: SYSTEM }] },
+      contents: [{ role:"user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.4 }
+    };
+    if(model.search) body.tools = [{ google_search: {} }];
+    var url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+              encodeURIComponent(model.id) + ":generateContent?key=" + encodeURIComponent(state.key);
+    return post(url, { "Content-Type":"application/json" }, body).then(function(res){
+      if(!res.ok){
+        var e = new Error(friendlyError(res.status, res.text, "gemini"));
+        e.__status = res.status; e.__raw = res.text;
+        throw e;
+      }
+      var j = JSON.parse(res.text);
+      var c = j.candidates && j.candidates[0];
+      var parts = c && c.content && c.content.parts;
+      var text = Array.isArray(parts) ? parts.map(function(p){ return p.text||""; }).join("") : "";
+      if(!text.trim()) throw new Error("AIが空の返事を返しました。もう一度押してみてください。");
+      var gm = c && (c.groundingMetadata || c.grounding_metadata);
+      var chunks = gm && (gm.groundingChunks || gm.grounding_chunks) || [];
+      var seen = {}, src = [];
+      chunks.forEach(function(ch){
+        var w = ch && ch.web;
+        if(w && w.title && !seen[w.title]){ seen[w.title]=1; src.push(w.title); }
+      });
+      return { text:text, sources: src.slice(0,6) };
+    });
+  }
+
+  // 1つのAIが1日の上限に達しても止まらないよう、順に切り替える
+  function fallbackChain(startKey){
+    var list = MODELS[provider()];
+    var chain = [], i;
+    for(i=0;i<list.length;i++){ if(list[i].key === startKey) chain.push(list[i]); }
+    for(i=0;i<list.length;i++){ if(list[i].key !== startKey) chain.push(list[i]); }
+    return chain;
+  }
+
+  function generate(name, cond, note){
+    var p = provider();
+    var run = (p === "gemini") ? callGemini : callGroq;
+    var chain = fallbackChain(currentModel().key);
+    var usedFallback = null;
+
+    function attemptAt(idx){
+      if(idx >= chain.length){
+        throw new Error("どのAIも今日の無料枠を使い切りました。日付が変わると回復します。");
+      }
+      var model = chain[idx];
+      var prompt = buildPrompt(name, cond, note, model.search);
+      if(idx > 0) setBusyLabel(model);
+      return run(prompt, model).then(function(r){
+        if(idx > 0) usedFallback = model;
+        return r;
+      }).catch(function(e){
+        if(e && e.__exhausted && idx + 1 < chain.length) return attemptAt(idx + 1);
+        throw e;
+      });
+    }
+
+    return Promise.resolve().then(function(){ return attemptAt(0); }).catch(function(e){
+      if(e instanceof TypeError)
+        throw new Error("ネットにつながりませんでした。電波を確認してもう一度お試しください。");
+      throw e;
+    }).then(function(r){
+      return { text: cleanup(r.text), sources: r.sources || [], fallback: usedFallback };
+    });
+  }
+
+  function cleanup(t){
+    if(!t) return "";
+    t = t.replace(/\r/g, "");
+    t = t.replace(/<think>[\s\S]*?<\/think>/gi, "");
+    // 検索の出典マーカー（【1†L66-L67】【2†...】など）を消す
+    t = t.replace(/【\s*\d+\s*[†‡][^】]*】/g, "");
+    t = t.replace(/\[\s*\d+\s*[†‡][^\]]*\]/g, "");
+    t = t.replace(/^\s*```[a-zA-Z]*\s*\n?/, "").replace(/\n?```\s*$/, "");
+    t = t.replace(/^\s*(以下|こちら)[^\n]*(です|ます)[。：:]?\s*\n+/, "");
+    t = t.replace(/\*\*/g, "");
+    t = t.replace(/^\s*[-*・]\s+/gm, "•  ");
+    t = t.replace(/^\s*•\s+/gm, "•  ");
+    t = t.replace(/[ \t　]+$/gm, "");
+    // 「600 mAh」→「600mAh」のように数値と単位のすき間を詰める
+    t = t.replace(/(\d)\s+(mAh|mm|cm|GHz|MHz|kHz|Hz|kg|g|ms|W|V|A|インチ|時間|分|秒|型)/g, "$1$2");
+    t = t.replace(/‑/g, "-");
+    // 「宜しくお願いします」が締め文と同じ行に来てしまった場合は改行で分ける
+    t = t.replace(/([^\n。])\s*宜しくお願いします\s*$/, "$1\n宜しくお願いします");
+    t = t.replace(/。\s*宜しくお願いします\s*$/, "。\n宜しくお願いします");
+    t = t.replace(/\n{3,}/g, "\n\n");
+    t = t.trim();
+    if(t && !/宜しくお願いします\s*$/.test(t)) t += "\n宜しくお願いします";
+    return t;
+  }
+
+  /* ---------- 操作 ---------- */
+
+  function saveKey(v){
+    v = (v||"").trim();
+    if(!v){ showMsg("キーが空です。貼り付けてから押してください。"); return false; }
+    state.key = v;
+    localStorage.setItem(K_KEY, v);
+    if(!state.model){
+      state.model = DEFAULT_MODEL[provider()];
+      localStorage.setItem(K_MODEL, state.model);
+    }
+    hideMsg();
+    render();
+    return true;
+  }
+
+  $("saveKey").addEventListener("click", function(){
+    if(saveKey($("keyInput").value)){
+      showMsg("設定できました。商品名を入れて「説明文を作る」を押してください。", "ok");
+      setTimeout(hideMsg, 4000);
+      $("name").focus();
+    }
+  });
+
+  $("gearBtn").addEventListener("click", function(){
+    var s = $("settings");
+    var open = s.style.display === "block";
+    s.style.display = open ? "none" : "block";
+    if(!open) s.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+
+  $("provider").addEventListener("change", function(){
+    state.provPref = $("provider").value;
+    state.model = "";
+    fillModels();
+  });
+  $("model").addEventListener("change", function(){
+    state.model = $("model").value;
+    fillModels();
+  });
+  $("keyInput2").addEventListener("input", function(){
+    if(state.provPref === "auto"){
+      var before = provider();
+      state.key = $("keyInput2").value.trim();
+      if(provider() !== before){ state.model = ""; fillModels(); }
+    }
+  });
+
+  $("saveSettings").addEventListener("click", function(){
+    var v = ($("keyInput2").value||"").trim();
+    if(v){ state.key = v; localStorage.setItem(K_KEY, v); }
+    state.provPref = $("provider").value;
+    localStorage.setItem(K_PROV, state.provPref);
+    state.model = $("model").value || DEFAULT_MODEL[provider()];
+    localStorage.setItem(K_MODEL, state.model);
+    $("settings").style.display = "none";
+    render();
+    showMsg("保存しました。", "ok");
+    setTimeout(hideMsg, 2500);
+  });
+
+  $("clearHist").addEventListener("click", function(){
+    if(!confirm("これまでに作った説明文をすべて消します。よろしいですか？")) return;
+    state.hist = [];
+    localStorage.removeItem(K_HIST);
+    renderHist();
+    $("histCard").style.display = "none";
+  });
+
+  var busy = false;
+
+  function run(){
+    if(busy) return;
+    var name = ($("name").value||"").trim();
+    if(!name){ showMsg("商品名を入れてください。"); $("name").focus(); return; }
+    if(!state.key){ showMsg("先にAPIキーを設定してください。"); return; }
+
+    var cond = $("cond").value;
+    var note = ($("note").value||"").trim();
+
+    busy = true;
+    hideMsg();
+    var btn = $("gen");
+    btn.classList.add("loading");
+    btn.disabled = true;
+    $("genLabel").textContent = currentModel().search ? "ネットで調べています…" : "作っています…";
+
+    generate(name, cond, note).then(function(res){
+      $("out").value = res.text;
+      var notes = [];
+      if(res.fallback){
+        notes.push("※ いつものAIが今日の上限に達したため「" + res.fallback.label + "」で作成しました"
+                   + (res.fallback.search ? "" : "（ネット検索なし。スペックは特によく確認してください）"));
+      }
+      if(res.sources.length) notes.push("参照：" + res.sources.join(" / "));
+      $("src").textContent = notes.join("\n");
+      $("result").style.display = "block";
+      pushHist(name, cond, res.text);
+      $("result").scrollIntoView({behavior:"smooth", block:"start"});
+    }).catch(function(e){
+      showMsg(e && e.message ? e.message : "うまくいきませんでした。もう一度お試しください。");
+    }).then(function(){
+      busy = false;
+      btn.classList.remove("loading");
+      btn.disabled = false;
+      $("genLabel").textContent = "説明文を作る";
+    });
+  }
+
+  $("gen").addEventListener("click", run);
+  $("again").addEventListener("click", run);
+  $("name").addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); run(); } });
+
+  $("copy").addEventListener("click", function(){
+    var text = $("out").value;
+    var done = function(){
+      var b = $("copy"), old = b.textContent;
+      b.textContent = "コピーしました ✓";
+      setTimeout(function(){ b.textContent = old; }, 1800);
+    };
+    function fallback(){
+      var ta = $("out");
+      ta.focus(); ta.select(); ta.setSelectionRange(0, 99999);
+      try{ document.execCommand("copy"); done(); }
+      catch(e){ showMsg("コピーできませんでした。文章を長押しして手動でコピーしてください。", "warn"); }
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
